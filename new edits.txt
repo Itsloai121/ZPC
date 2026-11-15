@@ -1,0 +1,35 @@
+new edits happen on the project GUI and backend and process
+
+
+great, i need you to make me a button when i press on the GUI and take me to the GUI page, i need you to make a button rounded edges having the same effects of the other buttons in the page but here's the twist, i need this button name "Checker" and when i press on it, with a color spread Motion Blur smooth transition that turn the website main colors from :{
+
+black, purple, white (all of them with gradient way)
+	need the black to be the dominant color
+	purple be the secondary color 
+	white be the accent color
+
+turn it to:
+black, Red, white (all of them with gradient way)
+	need the black to be the dominant color
+	purple be the secondary color 
+	white be the accent color
+}
+
+and also need that color effect change to be on every element 
+
+and i need you to make a option horizontal list that make the user chose the password how he would like it
+
+[Symbols, special characters, uppercase, numbers]
+and a mount bar that make the user chose how many character the user want the password
+with a small alert beautiful floating message with slide fade in & slide fade out transition warning the user to make the password minimum amount 12 characters 
+
+
+and i want the process that will happen to be connected to a file name "password_generator.py" because this is the brain of the generating side of the webstie
+
+and i need when the password successfully generated, i need it to shift to a page that contain content
+
+diagram data analysis about the password strength
+
+if it's strong then in an explaination tell what's the password strong points and what's the weak points (make sure if the password have no escalation no need to lie or to by force tell the user about the weak points) 
+
+

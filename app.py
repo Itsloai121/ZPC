@@ -1,11 +1,15 @@
+
 import os
 import sys
 import shutil
 import subprocess
 import ipaddress
+
 from pathlib import Path
 from urllib.parse import urlsplit
+
 from flask import Flask, jsonify, render_template, request
+
 from zynx_password_checker import (
     MAX_PASSWORD_LENGTH,
     ONLINE_GUESSES_PER_SECOND,
@@ -14,25 +18,49 @@ from zynx_password_checker import (
     estimate_crack_time
 )
 
+# Import secure password generation handler.
+from flask import Flask, request, jsonify
+from password_generator import handle_request
+
+app = Flask(__name__)          
+
+@app.post("/api/generate")
+def generate():
+    body, status = handle_request(request.get_json(silent=True))
+    return jsonify(body), status
+# ==========================================
+# FLASK APPLICATION
+# ==========================================
+
 app = Flask(__name__)
 
 # Limit incoming request size.
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
 
-# Project paths
+# Project paths.
 BASE_DIR = Path(__file__).resolve().parent
 TUI_SCRIPT = BASE_DIR / "zynx_password_checker.py"
 
-# Main website page.
+
+# ==========================================
+# MAIN WEBSITE PAGE
+# ==========================================
+
 @app.route("/")
 def index():
     return render_template("index.html")
 
-# Password analysis API.
+
+# ==========================================
+# PASSWORD ANALYSIS API
+# ==========================================
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
+
     # Read JSON sent by the website.
     data = request.get_json(silent=True)
+
     if not isinstance(data, dict):
         return jsonify({
             "error": "Invalid request data."
@@ -48,11 +76,14 @@ def analyze():
 
     if len(password) > MAX_PASSWORD_LENGTH:
         return jsonify({
-            "error": f"Maximum password length is {MAX_PASSWORD_LENGTH} characters."
+            "error": (
+                f"Maximum password length is "
+                f"{MAX_PASSWORD_LENGTH} characters."
+            )
         }), 400
 
     try:
-        # Run your EXISTING password analysis engine.
+        # Run existing password analysis engine.
         report = analyze_password(password)
 
         # Calculate estimated cracking times.
@@ -60,6 +91,7 @@ def analyze():
             report.entropy_bits,
             ONLINE_GUESSES_PER_SECOND
         )
+
         offline_time = estimate_crack_time(
             report.entropy_bits,
             OFFLINE_FAST_HASH_GUESSES_PER_SECOND
@@ -88,28 +120,57 @@ def analyze():
                 "offline": offline_time
             }
         }
+
         return jsonify(results)
 
     except (TypeError, ValueError) as error:
         return jsonify({
             "error": str(error)
         }), 400
+
     except Exception:
         # Avoid exposing internal errors or password data.
         app.logger.exception("Password analysis failed.")
+
         return jsonify({
             "error": "An internal analysis error occurred."
         }), 500
 
+
+# ==========================================
+# SECURE PASSWORD GENERATION API
+# ==========================================
+
+@app.post("/api/generate")
+def generate():
+
+    # Pass incoming JSON to the password generator.
+    body, status = handle_request(
+        request.get_json(silent=True)
+    )
+
+    # Return generated passwords or validation errors.
+    return jsonify(body), status
+
+
+# ==========================================
+# LOCAL TUI LAUNCHER
+# ==========================================
+
 @app.route("/api/launch-tui", methods=["POST"])
 def launch_tui():
+
     # Only allow requests from the local computer.
     try:
-        if not ipaddress.ip_address(request.remote_addr).is_loopback:
+        if not ipaddress.ip_address(
+            request.remote_addr
+        ).is_loopback:
+
             return jsonify({
                 "success": False,
                 "error": "Local access only."
             }), 403
+
     except (ValueError, TypeError):
         return jsonify({
             "success": False,
@@ -118,8 +179,10 @@ def launch_tui():
 
     # Reject cross-origin browser requests.
     origin = request.headers.get("Origin")
+
     if origin:
         parsed = urlsplit(origin)
+
         if parsed.netloc.lower() != request.host.lower():
             return jsonify({
                 "success": False,
@@ -130,7 +193,11 @@ def launch_tui():
     if os.name != "nt":
         return jsonify({
             "success": False,
-            "error": "Automatic TUI launching is supported on Windows. Run the TUI from your terminal instead."
+            "error": (
+                "Automatic TUI launching is supported "
+                "on Windows. Run the TUI from your "
+                "terminal instead."
+            )
         }), 501
 
     # Verify the Python application exists.
@@ -156,7 +223,9 @@ def launch_tui():
     python_executable = Path(sys.executable)
 
     if python_executable.name.lower() == "pythonw.exe":
-        python_executable = python_executable.with_name("python.exe")
+        python_executable = python_executable.with_name(
+            "python.exe"
+        )
 
     # Safely quote paths for PowerShell.
     def ps_quote(value):
@@ -183,7 +252,9 @@ def launch_tui():
 
         return jsonify({
             "success": True,
-            "message": "TUI launched in a new PowerShell window."
+            "message": (
+                "TUI launched in a new PowerShell window."
+            )
         }), 202
 
     except OSError:
@@ -194,15 +265,25 @@ def launch_tui():
             "error": "Unable to launch the PowerShell window."
         }), 500
 
-# Handle oversized requests.
+
+# ==========================================
+# REQUEST ERROR HANDLERS
+# ==========================================
+
 @app.errorhandler(413)
 def request_too_large(error):
+
     return jsonify({
         "error": "Request is too large."
     }), 413
 
-# Start the local web server.
+
+# ==========================================
+# START LOCAL WEB SERVER
+# ==========================================
+
 if __name__ == "__main__":
+
     app.run(
         host="127.0.0.1",
         port=5000,
